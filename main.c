@@ -1,15 +1,7 @@
 /* Snek */
-#define SNEK_VERSION "v1.0"
+#define SNEK_VERSION "v1.01"
 
-/*
-    Changelog:
-	2-Nov-2017: Started project. This is a "Snake" game where you eat apples while avoiding
-				chomping on yourself.
-				Okay, this is pretty much Snake, but with the quirk that the body does not
-				extend immediately upon eating an apple.
-
-				Maybe add some more features in the future.
-*/
+/* See your wiki for changelog. */
 
 // C Standard Library
 #include <stdio.h>
@@ -19,26 +11,19 @@
 #include <math.h>
 #include <string.h>
 
-
-// Curses library.
-// Windows: PDCurses. Linux: NCurses.
+// Curses
 #include "curses.h"
 
+// Game source -- adapted from Fog / Floors N' Doors.
 
-// Game source
 #include "error_handler.h"  // Error handling / debug logging and bad terminations.
                             // Use errLog() to log messages, and errQuit() to abandon ship.
 #include "curses_wrapper.h" // Curses helper functions
 
 // Graphics
-#include "draw.h"           // Drawing maps and objects to screen.
-                            // if gfx tiles are ever supported, this will likely need to be subdivided into draw_curses.h and draw_gfx.h
+#include "draw.h"           // Some additional Curses helper functions.
 
-// Reminder that a function should return a meaningful variable but doesn't.
-#define TODO_RETURN 0
-
-
-
+/* Bounds checking */
 int inBounds( int x, int y ) {
 	if( x >= 0 && x <= VIEWPORT_W - 1 && y >= 0 && y <= VIEWPORT_H - 1 ) {
 		return 1;
@@ -92,6 +77,7 @@ void putCellRandom( int *brd, int kind, int under ) {
 
 int main( int argc, char *argv[] ) {
 
+	// Print version
 	if( argc > 1 && strncmp( argv[1], "--version", 10 ) == 0 ) {
 		printf( "Snek " SNEK_VERSION "\n");
 		exit(1);
@@ -108,10 +94,9 @@ int main( int argc, char *argv[] ) {
     errorHandlerInit( &error_handler, 0 );
     errLog( "    ** Logging new session **");
 
-    // Seed randomizer. Call only once.
-    // TODO consider getting a more robust randomizer in the future. This call is based on the current
-    // second, so it's possible to start multiple instances of the game with the same seed randomizer.
-    // Precognition!
+    // Seed randomizer.  Call only once.  Consider getting a more robust randomizer in the future.
+	// This randomizes based on the current second -- it's easy to start multiple instances 
+	// with the same seed randomizer.
     srand(time(NULL));
 
     // Set a fixed seed for debugging purposes.
@@ -123,51 +108,47 @@ int main( int argc, char *argv[] ) {
         exit(1);
     }
 
-    // -- Game resource initialization.
-
-
-    // -- Title Screen
+    /* Title Screen */
 
     #define SHOW_TITLE 1
 
     if( SHOW_TITLE ) {
-        //mvprintw(1, 2, "Fog Project 1 - \"Floors N' Doors\" " FOG_VERSION "\n  Build date: " __DATE__ ", " __TIME__ "\n\n  www.rabbitboots.com\n\n  \n  An 80x25 terminal is assumed.\n\n  Press any key to start...");
-        mvprintw(1, 2, "Oh No It's\n\n  Snek\n\n  " SNEK_VERSION "\n\n  Build date: " __DATE__ ", " __TIME__ "\n\n  www.rabbitboots.com\n\n  \n  An 80x25 terminal is assumed.\n\n  Press any key to start...");
+        mvprintw(1, 2, "Oh No It's\n\n  Snek\n\n  " SNEK_VERSION "\n\n  Build date: " __DATE__ ", " __TIME__ "\n\n  www.rabbitboots.com\n\n  \n  An 80x25 terminal is assumed.\n\n  Press any key to start!");
         refresh();
         getch();
         clear();
     }
 
-
-    // -- Game state initialization.  Under Construction.
-
-	// -- Main loop.
-    // Loop control variables.
+	/* Main loop. */
+    // Loop control vars
     int keep_going = 1;
     int first_tick = 1;
 
-    //halfdelay(1);             // debug
-
 
 	// Some vars for Snek.
-	int player_input = 0;	// Player keyboard input
-	int px = VIEWPORT_W / 2;
+	int player_input = 0;		// Player keyboard input
+	int px = VIEWPORT_W / 2;	// Player XY
 	int py = VIEWPORT_H / 2;
-	int plen = 5;			// Snek Taill Lenth
+	int plen = 5;				// Snek Tail Length
+	int n_apples = 0;			// Apples eaten
 
+	// Direction constants
 	#define DIR_EAST 1
 	#define DIR_WEST 2
 	#define DIR_NORTH 3
 	#define DIR_SOUTH 4
 	int pdir = DIR_EAST;
 
+	// Cell IDs
 	int wall = VIEWPORT_W * VIEWPORT_H;
 	int apple = wall + 1;
 
+	// Board init
 	int * board;
 	board = malloc( sizeof(int) * (VIEWPORT_W * VIEWPORT_H) );
-
-	// Board init
+	if( !board ) {
+		errQuit( "FATAL: main.c: malloc() failed on board* pointer." );
+	}
 	{
 		int x, y;
 		for( x = 0; x < VIEWPORT_W; x++ ) {
@@ -183,38 +164,38 @@ int main( int argc, char *argv[] ) {
 	}
 	putCellRandom( board, apple, 0 );
 
-
-	if( !board ) {
-		errQuit( "FATAL: main.c: malloc() failed on board* pointer." );
-	}
-
+	// Main loop
     while(keep_going) {
         // halfdelay() makes Curses "time out" if nothing has been inputted by the user in N tenths of a second.
-        // Not totally reliable for real-time input, but could be used for simple 10 FPS animations.
-        // SDL input and timing would be more robust.
         halfdelay(2);
 
         // Do some things differently on the very first tick.
         if(!first_tick) {
-	        // -- Input processing.
+	        // -- Input processing
+			// Disallow player from turning 180 degrees (north to south, east to west)
 			player_input = getch();
 
 			switch (player_input) {
 
 			case KEY_LEFT:
-				pdir = DIR_WEST;
+				if( pdir != DIR_EAST ) {
+					pdir = DIR_WEST;
+					}
 				break;
 			case KEY_RIGHT:
-				pdir = DIR_EAST;
+				if( pdir != DIR_WEST ) {
+					pdir = DIR_EAST;
+				}
 				break;
 			case KEY_UP:
-				pdir = DIR_NORTH;
+				if( pdir != DIR_SOUTH ) {
+					pdir = DIR_NORTH;
+				}
 				break;
 			case KEY_DOWN:
-				pdir = DIR_SOUTH;
-				break;
-			case 'd':
-				plen++;
+				if( pdir != DIR_NORTH ) {
+					pdir = DIR_SOUTH;
+				}
 				break;
 			default:
 				break;
@@ -244,11 +225,12 @@ int main( int argc, char *argv[] ) {
 		// Snek meets apple
 		if( under == apple ) {
 			plen++;
+			n_apples++;
 			putCellRandom( board, apple, 0 );
 		}
 		
-		// Clip snake tail
-		{
+		// Clip Snek tail, but only if it hasn't just eaten an apple.
+		else {
 		int x, y;
 		for( x = 0; x < VIEWPORT_W; x++ ) {
 			for( y = 0; y < VIEWPORT_H; y++ ) {
@@ -260,13 +242,12 @@ int main( int argc, char *argv[] ) {
 		}
 		}
 
-		// Plot snake body
-		// Overwrites apples
+		// Write Snek body to buffer.  Overwrites apples
 		if( plen > 0 ) {
 			putCell( board, plen, px, py );
 		}
 
-		// Move snake head
+		// Move Snek head
 		if( pdir == DIR_EAST ) {
 			px++;
 		}
@@ -324,12 +305,14 @@ int main( int argc, char *argv[] ) {
 			}
 		}
 
-		/* Draw the Snek */
+		/* Draw the Snek head */
 
 		colorSet( COLOR_GREEN, COLOR_BLACK, 1, 0 );
-
-		/* Head */
 		mvaddch( py, px, 'S' );
+
+		/* Draw UI elements */
+		mvprintw( 4, 42, "                    " );
+		mvprintw( 4, 42, "Apples: %d", n_apples );
 
         // Curses display update.
         refresh();
