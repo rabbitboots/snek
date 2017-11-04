@@ -1,8 +1,6 @@
 /* Snek */
 #define SNEK_VERSION "v1.01"
 
-/* See your wiki for changelog. */
-
 // C Standard Library
 #include <stdio.h>
 #include <stdlib.h>
