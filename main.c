@@ -145,7 +145,7 @@ int main( int argc, char *argv[] ) {
 	int * board;
 	board = malloc( sizeof(int) * (VIEWPORT_W * VIEWPORT_H) );
 	if( !board ) {
-		errQuit( "FATAL: main.c: malloc() failed on board* pointer." );
+		errQuit( "FATAL: main.c: malloc() failed on board * pointer." );
 	}
 	{
 		int x, y;
@@ -229,15 +229,15 @@ int main( int argc, char *argv[] ) {
 		
 		// Clip Snek tail, but only if it hasn't just eaten an apple.
 		else {
-		int x, y;
-		for( x = 0; x < VIEWPORT_W; x++ ) {
-			for( y = 0; y < VIEWPORT_H; y++ ) {
-				int this = getCell( board, x, y );
-				if( this > 0 && this < wall ) {
-					putCell( board, this - 1, x, y );
+			int x, y;
+			for( x = 0; x < VIEWPORT_W; x++ ) {
+				for( y = 0; y < VIEWPORT_H; y++ ) {
+					int this = getCell( board, x, y );
+					if( this > 0 && this < wall ) {
+						putCell( board, this - 1, x, y );
+					}
 				}
 			}
-		}
 		}
 
 		// Write Snek body to buffer.  Overwrites apples
@@ -258,13 +258,16 @@ int main( int argc, char *argv[] ) {
 		if( pdir == DIR_NORTH ) {
 			py--;
 		}
+		/*  Clear will wipe the Curses window, but it can cause noticeable tearing artifacts in the Windows 10 console.
+            It may look OK on other platforms or terminals, though.
+            TODO: drop in a config option to use clear() every on every loop tick if desired.
+			Update: Now I'm experiencing artifacts when clear() is not used. Leaving it on for now.	*/
+        clear();
 
 
-        /* -- Rendering. */
-		/* Draw the background */
+		/* Draw background */
 
-		colorSet( COLOR_BLUE, COLOR_BLACK, 1, 0 );
-
+		{
 		int x, y;
 		for( x = 0; x < VIEWPORT_W; x++ ) {
 			for( y = 0; y < VIEWPORT_H; y++ ) {
@@ -284,7 +287,7 @@ int main( int argc, char *argv[] ) {
 				}
 
 				// c) Snek body
-				else if( this > 0 ) {
+				else if( (this > 0) && (this < wall) ) {
 					colorSet( COLOR_GREEN, COLOR_BLACK, 0, 0 );
 					if( this % 2 == 1 ) { 
 						glyph = 'S';
@@ -295,30 +298,26 @@ int main( int argc, char *argv[] ) {
 				}
 
 				// d) empty
-				else if( this == 0 ) {
-					colorSet( COLOR_BLACK, COLOR_BLACK, 0, 0 );
+				else {
+					colorSet( COLOR_BLUE, COLOR_BLACK, 0, 0 );
 					glyph = ' ';
 				}
 				mvaddch(y, x, glyph);
 			}
 		}
-
+		}
 		/* Draw the Snek head */
 
 		colorSet( COLOR_GREEN, COLOR_BLACK, 1, 0 );
 		mvaddch( py, px, 'S' );
 
 		/* Draw UI elements */
+		colorSet( COLOR_WHITE, COLOR_BLACK, 1, 0 );
 		mvprintw( 4, 42, "                    " );
 		mvprintw( 4, 42, "Apples: %d", n_apples );
 
         // Curses display update.
         refresh();
-
-        /*  Clear will wipe the Curses window, but it can cause noticeable tearing artifacts in the Windows 10 console.
-            It may look OK on other platforms or terminals, though.
-            TODO: drop in a config option to use clear() every on every loop tick if desired. */
-        // clear();
 
         first_tick = 0;
 
