@@ -76,9 +76,6 @@ int init_curses(void) {
 
     curs_set(0);        // Turn off the blinking cursor for now.
                         // 0 = disable, 1 = blinking line, 2 = blinking square.
-                        // Many RLs use the cursor to put increased emphasis on the player or
-                        // UI prompts. After all drawing is done, you would use move commands
-                        // to place the cursor on top of the player's '@' symbol.
 
     return 0;
 }

@@ -1,7 +1,7 @@
 #include "draw.h"
 
 // Wrap curses draw-character function to include attributes.
-void drawGlyph( int glyph, int x, int y, int fg, int bg, int bright_fg, int bright_bg ) {
+void drawGlyph( int glyph, int x, int y, int fg, int bg, bool bright_fg, bool bright_bg ) {
 
     colorSet( fg, bg, bright_fg, bright_bg );
 
@@ -19,7 +19,7 @@ int colPair(int fg, int bg) {
     return col_map[fg][bg];
 }
 
-void colorSet( int fg, int bg, int fg_intensity, int bg_blink ) {
+void colorSet( int fg, int bg, bool fg_intensity, bool bg_blink ) {
     if( fg_intensity ) {
         attron( A_BOLD );
     }

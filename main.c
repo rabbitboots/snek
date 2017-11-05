@@ -8,6 +8,7 @@
 #include <ctype.h>
 #include <math.h>
 #include <string.h>
+#include <stdbool.h>
 
 // Curses
 #include "curses.h"
@@ -119,8 +120,8 @@ int main( int argc, char *argv[] ) {
 
 	/* Main loop. */
     // Loop control vars
-    int keep_going = 1;
-    int first_tick = 1;
+    bool keep_going = true;
+    bool first_tick = true;
 
 
 	// Some vars for Snek.
@@ -140,6 +141,7 @@ int main( int argc, char *argv[] ) {
 	// Cell IDs
 	int wall = VIEWPORT_W * VIEWPORT_H;
 	int apple = wall + 1;
+	int nothing = 0;
 
 	// Board init
 	int * board;
@@ -155,24 +157,24 @@ int main( int argc, char *argv[] ) {
 					putCell( board, wall, x, y );	
 				}
 				else {
-					putCell( board, 0, x, y );
+					putCell( board, nothing, x, y );
 				}
 			}
 		}
 	}
-	putCellRandom( board, apple, 0 );
+	putCellRandom( board, apple, nothing );
 
 	// Main loop
     while(keep_going) {
-        // halfdelay() makes Curses "time out" if nothing has been inputted by the user in N tenths of a second.
+        // Makes Curses "time out" if no key has been pressed in N tenths of a second.
         halfdelay(2);
 
         // Do some things differently on the very first tick.
         if(!first_tick) {
 	        // -- Input processing
-			// Disallow player from turning 180 degrees (north to south, east to west)
 			player_input = getch();
 
+			// Note: disallow player from turning 180 degrees (north to south, east to west)
 			switch (player_input) {
 
 			case KEY_LEFT:
@@ -202,7 +204,7 @@ int main( int argc, char *argv[] ) {
 
         // Quitting
         if( player_input == 'q' ) {
-            keep_going = 0;
+            keep_going = false;
 			continue;
         }
 
@@ -211,7 +213,7 @@ int main( int argc, char *argv[] ) {
 		// Game Over Condition
 		int under = getCell( board, px, py );
 
-		if( under > 0 && under != apple ) {
+		if( under > nothing && under != apple ) {
 			colorSet( COLOR_WHITE, COLOR_RED, 1, 1 );
 			mvprintw(0, 0, " * S N E K   O V E R * " );
 			colorSet( COLOR_WHITE, COLOR_BLACK, 1, 0 );
@@ -224,7 +226,7 @@ int main( int argc, char *argv[] ) {
 		if( under == apple ) {
 			plen++;
 			n_apples++;
-			putCellRandom( board, apple, 0 );
+			putCellRandom( board, apple, nothing );
 		}
 		
 		// Clip Snek tail, but only if it hasn't just eaten an apple.
@@ -233,7 +235,7 @@ int main( int argc, char *argv[] ) {
 			for( x = 0; x < VIEWPORT_W; x++ ) {
 				for( y = 0; y < VIEWPORT_H; y++ ) {
 					int this = getCell( board, x, y );
-					if( this > 0 && this < wall ) {
+					if( this > nothing && this < wall ) {
 						putCell( board, this - 1, x, y );
 					}
 				}
@@ -258,9 +260,9 @@ int main( int argc, char *argv[] ) {
 		if( pdir == DIR_NORTH ) {
 			py--;
 		}
-		/*  Clear will wipe the Curses window, but it can cause noticeable tearing artifacts in the Windows 10 console.
-            It may look OK on other platforms or terminals, though.
-            TODO: drop in a config option to use clear() every on every loop tick if desired.
+		/*  Clear will wipe the Curses window, but it can cause noticeable tearing artifacts 
+		    in the Windows 10 console.  It may look OK on other platforms or terminals, though.
+            TODO: Drop in a config option to use clear() every on every loop tick if desired.
 			Update: Now I'm experiencing artifacts when clear() is not used. Leaving it on for now.	*/
         clear();
 
@@ -287,7 +289,7 @@ int main( int argc, char *argv[] ) {
 				}
 
 				// c) Snek body
-				else if( (this > 0) && (this < wall) ) {
+				else if( (this > nothing) && (this < wall) ) {
 					colorSet( COLOR_GREEN, COLOR_BLACK, 0, 0 );
 					if( this % 2 == 1 ) { 
 						glyph = 'S';

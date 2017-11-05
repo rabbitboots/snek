@@ -1,6 +1,8 @@
 #ifndef DRAW_H
 #define DRAW_H
 
+#include <stdbool.h>
+
 #include "curses.h"
 #include "curses_wrapper.h"
 
@@ -8,8 +10,6 @@
 
 #define RANGE_TYPE_SQUARE 1
 #define RANGE_TYPE_CIRCLE 2
-
-
 
 
 // The viewport is the window into the gameworld / map.
@@ -28,11 +28,11 @@ int VIEWPORT_Y;
 #define SCREEN_H 25
 
 
-void drawGlyph( int glyph, int x, int y, int fg, int bg, int bright_fg, int bright_bg );
+void drawGlyph( int glyph, int x, int y, int fg, int bg, bool bright_fg, bool bright_bg );
 
 int colPair( int fg, int bg );
 
-void colorSet( int fg, int bg, int fg_intensity, int bg_blink );
+void colorSet( int fg, int bg, bool fg_intensity, bool bg_blink );
 
 #endif // DRAW_H
 
