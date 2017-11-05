@@ -139,9 +139,11 @@ int main( int argc, char *argv[] ) {
 	int pdir = DIR_EAST;
 
 	// Cell IDs
+	int nothing = 0;
+	// Note: any cell larger than 'nothng' and smaller than 'wall' is considered part of the Snek's body.
 	int wall = VIEWPORT_W * VIEWPORT_H;
 	int apple = wall + 1;
-	int nothing = 0;
+	
 
 	// Board init
 	int * board;
