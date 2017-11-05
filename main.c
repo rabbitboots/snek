@@ -34,7 +34,7 @@ int inBounds( int x, int y ) {
 int getCell( int * brd, int x, int y ) {
 	int kind;
 	if( inBounds( x, y ) ) {
-		kind = brd[ x * VIEWPORT_W + y ];
+		kind = brd[ x * VIEWPORT_H + y ];
 	}
 	else {
 		kind = -1;
@@ -44,7 +44,7 @@ int getCell( int * brd, int x, int y ) {
 
 void putCell( int * brd, int kind, int x, int y ) {
 	if( inBounds( x, y ) ) {
-		brd[x * VIEWPORT_W + y] = kind;
+		brd[x * VIEWPORT_H + y] = kind;
 	}
 	return;
 }
