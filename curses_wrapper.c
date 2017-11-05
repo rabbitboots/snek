@@ -11,7 +11,7 @@ int curses_init_color_pairs() {
         fg = i % N_COLORS;
         bg = i / N_COLORS;
 
-        if( init_pair(i+1, fg, bg ) == ERR )  {
+        if( init_pair( i + 1, fg, bg ) == ERR )  {
             errLog( "curses_init_color_pairs(): init_pair() failed." );
             return ERR;
         }
@@ -29,22 +29,13 @@ int curses_init_color_pairs() {
 // Curses startup wrapper.
 int init_curses(void) {
 
-    //#define CURSES_WIDTH 80
-    //#define CURSES_HEIGHT 50
-    //#define ENV_SZ 32
-    //char widthEnv[ENV_SZ];
-    //char heightEnv[ENV_SZ];
-
-    //snprintf( "pdc_cols=%d", ENV_SZ, CURSES_WIDTH );
-    //snprintf( "pdc_lines=%d", ENV_SZ, CURSES_HEIGHT );
-
     // Start Curses
     if( initscr() == NULL ) {
         errLog( "init_curses(): initscr() failed." );
         return ERR;
     }
 
-    // Enable colors.
+    // Enable colors, if supported
     if( !has_colors() ) {
         errLog( "init_curses(): Note: Curses is reporting that color is not supported by this terminal." );
     }
@@ -52,16 +43,6 @@ int init_curses(void) {
         errLog( "init_curses(): start_color() failed.");
         return ERR;
     }
-
-    /*
-    Curses specifies the following functions for altering colors,
-    but I can't get them to work at the moment. I'll leave them
-    alone for now.
-
-    can_change_color() // This returns true in Windows -- maybe it just means the *user* can change colors?
-    init_color(COLOR_GREEN, 1000,1000,1000);
-    color_content(short, *short, *short, *short);
-    */
 
     // Initialize color pairs
     if( curses_init_color_pairs() == ERR ) {
@@ -78,28 +59,4 @@ int init_curses(void) {
                         // 0 = disable, 1 = blinking line, 2 = blinking square.
 
     return 0;
-}
-
-
-void colorTestPattern(void) {
-    int x, y, f, g;
-    for(x = 0; x < 8; x++ ) {
-        for( y = 0; y < 8; y++ ) {
-            for( f = 0; f < 2; f++ ) {
-                for( g = 0; g < 2; g++ ) {
-		    // TODO disabling this while trying to get the code to compile under linux gcc.
-                    //colorSet( x, y, f, g );
-                    //color_set( x, y, f, g );
-                    mvaddch(y+(f*8),x+(g*8), '#');
-                }
-            }
-        }
-    }
-}
-
-void charTest(void) {
-    int i;
-    for (i=0; i<2000; i++) {
-    mvaddch(i / 80,i % 80, i + 8000);
-    }
 }

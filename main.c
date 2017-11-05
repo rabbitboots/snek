@@ -132,8 +132,8 @@ int main( int argc, char *argv[] ) {
 	int n_apples = 0;			// Apples eaten
 
 	// Direction constants
-	#define DIR_EAST 1
-	#define DIR_WEST 2
+	#define DIR_EAST  1
+	#define DIR_WEST  2
 	#define DIR_NORTH 3
 	#define DIR_SOUTH 4
 	int pdir = DIR_EAST;
