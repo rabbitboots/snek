@@ -22,6 +22,13 @@
 // Graphics
 #include "draw.h"           // Some additional Curses helper functions.
 
+/* Cell IDs */
+#define CELL_EMPTY 0
+#define CELL_WALL 1
+#define CELL_APPLE 2
+#define CELL_SNAKE 100 // 100 + length count
+#define CELL_SNAKE_TO_EMPTY (CELL_SNAKE-1)
+
 /* Bounds checking */
 int inBounds( int x, int y ) {
 	if( x >= 0 && x <= VIEWPORT_W - 1 && y >= 0 && y <= VIEWPORT_H - 1 ) {
@@ -50,29 +57,71 @@ void putCell( int * brd, int kind, int x, int y ) {
 	return;
 }
 
-void putCellRandom( int *brd, int kind, int under ) {
+int putCellRandom( int *brd, int kind, int under ) {
 	int x, y;
+	int r;
 	int space = 0;
 	
+	/* Determine if there is space to put something */
 	for( x = 0; x < VIEWPORT_W; x++ ) {
 		for( y = 0; y < VIEWPORT_H; y++ ) {
 			if( getCell(brd, x, y) == under ) {
-				space = 1;
+				space++;
 			}
 		}
 	}
-	while( space ) {
-		x = 1 + rand() % VIEWPORT_W;
-		y = 1 + rand() % VIEWPORT_H;
 
-		if( getCell( brd, x, y ) == under ) {
-			putCell( brd, kind, x, y );
-			break;
+	r = rand() % space;
+	
+	if( space > 0 ) {
+		for( x = 0; x < VIEWPORT_W; x++ ) {
+			for( y = 0; y < VIEWPORT_H; y++ ) {
+				if( getCell(brd, x, y) == under ) {
+					if( r == 0 ) {
+						putCell(brd, kind, x, y);
+						return 0;
+					}
+					else {
+						r--;
+					}
+				}
+			}
 		}
 	}
-	return;
+	return 1;
 }
 
+
+#define BOARDTYPE_EMPTY 0
+#define BOARDTYPE_CROSS 1
+
+void boardMake( int * brd, int b_n, int b_s, int b_e, int b_w, int board_type ) {
+//void boardMakeSquare( int * brd ) {
+	int x, y;
+	for( x = 0; x < VIEWPORT_W; x++ ) {
+		for( y = 0; y < VIEWPORT_H; y++ ) {
+
+			// Start with an empty cell
+			putCell( brd, CELL_EMPTY, x, y );
+		
+			// Plot borders if requested
+			if(	(b_n && y == 0 )
+			  ||	(b_s && y == VIEWPORT_H - 1)
+			  ||	(b_e && x == VIEWPORT_W - 1)
+			  ||  	(b_w && x == 0) ) {
+				putCell( brd, CELL_WALL, x, y );
+			}
+		
+			// Cross pattern
+			if( board_type == BOARDTYPE_CROSS ) {
+				if( (x > 3 && x < VIEWPORT_W - 4 && y > VIEWPORT_H/ 2 - 2 && y < VIEWPORT_H/2 + 2) 
+				||  (y > 3 && y < VIEWPORT_H - 4 && x > VIEWPORT_W/ 2 - 2 && x < VIEWPORT_W/2 + 2) ) {
+					putCell( brd, CELL_WALL, x, y );
+				}
+			}
+		}
+	}
+}
 
 int main( int argc, char *argv[] ) {
 
@@ -111,11 +160,24 @@ int main( int argc, char *argv[] ) {
 
     #define SHOW_TITLE 1
 
+	int title_in = 0;
+	int board_select = -1;
+
     if( SHOW_TITLE ) {
-        mvprintw(1, 2, "Oh No It's\n\n  Snek\n\n  " SNEK_VERSION "\n\n  Build date: " __DATE__ ", " __TIME__ "\n\n  www.rabbitboots.com\n\n  \n  An 80x25 terminal is assumed.\n\n  Press any key to start!");
-        refresh();
-        getch();
-        clear();
+		while( board_select == -1 ) {
+	        mvprintw(1, 2, "Oh No It's\n\n  Snek\n\n  " SNEK_VERSION "\n\n  Build date: " __DATE__ ", " __TIME__ "\n\n  www.rabbitboots.com\n\n  \n  An 80x25 terminal is assumed.\n\n  Arrow keys to move your Snek.\n\n Please choose an arena:\n\n  a) Square Board of Mundanity\n\n  b) Cross Board of Tight Quarters");
+	        refresh();
+	        title_in = getch();
+    	    clear();
+			if( title_in >= 'a' && title_in <= 'b' ) {
+				if( title_in == 'a' ) {
+					board_select = BOARDTYPE_EMPTY;
+				}
+				if( title_in == 'b' ) {
+					board_select = BOARDTYPE_CROSS;
+				}
+			}
+		}
     }
 
 	/* Main loop. */
@@ -126,8 +188,16 @@ int main( int argc, char *argv[] ) {
 
 	// Some vars for Snek.
 	int player_input = 0;		// Player keyboard input
-	int px = VIEWPORT_W / 2;	// Player XY
-	int py = VIEWPORT_H / 2;
+	int px, py;
+	if( board_select == BOARDTYPE_EMPTY ) {
+		px = VIEWPORT_W / 2;	// Player XY.  May need to be overridden depending on the board.
+		py = VIEWPORT_H / 2;
+	}
+	if( board_select == BOARDTYPE_CROSS ) {
+		px = 1;
+		py = 1;
+	}
+	
 	int plen = 5;				// Snek Tail Length
 	int n_apples = 0;			// Apples eaten
 
@@ -138,33 +208,15 @@ int main( int argc, char *argv[] ) {
 	#define DIR_SOUTH 4
 	int pdir = DIR_EAST;
 
-	// Cell IDs
-	int nothing = 0;
-	// Note: any cell larger than 'nothng' and smaller than 'wall' is considered part of the Snek's body.
-	int wall = VIEWPORT_W * VIEWPORT_H;
-	int apple = wall + 1;
-	
-
 	// Board init
 	int * board;
 	board = malloc( sizeof(int) * (VIEWPORT_W * VIEWPORT_H) );
 	if( !board ) {
 		errQuit( "FATAL: main.c: malloc() failed on board * pointer." );
 	}
-	{
-		int x, y;
-		for( x = 0; x < VIEWPORT_W; x++ ) {
-			for( y = 0; y < VIEWPORT_H; y++ ) {
-				if( x == 0 || x == VIEWPORT_W - 1 || y == 0 || y == VIEWPORT_H - 1 ) {
-					putCell( board, wall, x, y );	
-				}
-				else {
-					putCell( board, nothing, x, y );
-				}
-			}
-		}
-	}
-	putCellRandom( board, apple, nothing );
+	
+	boardMake( board, 1, 1, 1, 1, board_select );
+	putCellRandom( board, CELL_APPLE, CELL_EMPTY );
 
 	// Main loop
     while(keep_going) {
@@ -215,7 +267,7 @@ int main( int argc, char *argv[] ) {
 		// Game Over Condition
 		int under = getCell( board, px, py );
 
-		if( under > nothing && under != apple ) {
+		if( under == CELL_WALL || under >= CELL_SNAKE ) {
 			colorSet( COLOR_WHITE, COLOR_RED, 1, 1 );
 			mvprintw(0, 0, " * S N E K   O V E R * " );
 			colorSet( COLOR_WHITE, COLOR_BLACK, 1, 0 );
@@ -225,10 +277,10 @@ int main( int argc, char *argv[] ) {
 		}
 
 		// Snek meets apple
-		if( under == apple ) {
+		if( under == CELL_APPLE ) {
 			plen++;
 			n_apples++;
-			putCellRandom( board, apple, nothing );
+			putCellRandom( board, CELL_APPLE, CELL_EMPTY );
 		}
 		
 		// Clip Snek tail, but only if it hasn't just eaten an apple.
@@ -237,8 +289,11 @@ int main( int argc, char *argv[] ) {
 			for( x = 0; x < VIEWPORT_W; x++ ) {
 				for( y = 0; y < VIEWPORT_H; y++ ) {
 					int this = getCell( board, x, y );
-					if( this > nothing && this < wall ) {
+					if( this >= CELL_SNAKE ) {
 						putCell( board, this - 1, x, y );
+					}
+					if( this == CELL_SNAKE_TO_EMPTY) {
+						putCell( board, CELL_EMPTY, x, y );
 					}
 				}
 			}
@@ -246,7 +301,7 @@ int main( int argc, char *argv[] ) {
 
 		// Write Snek body to buffer.  Overwrites apples
 		if( plen > 0 ) {
-			putCell( board, plen, px, py );
+			putCell( board, CELL_SNAKE + plen, px, py );
 		}
 
 		// Move Snek head
@@ -279,19 +334,19 @@ int main( int argc, char *argv[] ) {
 				int glyph = 'X';
 				// Cell is...
 				// a) Wall
-				if( this == wall ) {
+				if( this == CELL_WALL ) {
 					colorSet( COLOR_BLUE, COLOR_BLACK, 1, 0 );
 					glyph = '#';
 				}
 
 				// b) Apple
-				else if( this == apple ) {
+				else if( this == CELL_APPLE ) {
 					colorSet( COLOR_RED, COLOR_BLACK, 1, 0 );
 					glyph = '@';
 				}
 
 				// c) Snek body
-				else if( (this > nothing) && (this < wall) ) {
+				else if( this >= CELL_SNAKE ) {
 					colorSet( COLOR_GREEN, COLOR_BLACK, 0, 0 );
 					if( this % 2 == 1 ) { 
 						glyph = 'S';
