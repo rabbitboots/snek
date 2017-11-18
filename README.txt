@@ -6,7 +6,7 @@ Requirements
 	NCurses
 
 Compiling
-	Linux: gcc main.c curses_wrapper.c error_handler.c draw.c -o snek -lncurses
+	Linux: gcc *.c -o snek -lncurses
 	Windows: * TODO *
 
 Controls
@@ -19,7 +19,6 @@ Known Issues
   causing flickering under Windows 10 / PDCurses, but I'll leave this as is for now.
 
 Improvement Ideas:
-* Snake ASCII art for the title screen
 * Omm Nom Nom text randomly splashing the UI when an apple is eaten
 * Show the arena before action starts, and allow the player to choose their first move/direction instead of defaulting to moving east
 * Multiple screens / arenas
