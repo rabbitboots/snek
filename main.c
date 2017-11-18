@@ -1,5 +1,5 @@
 /* Snek */
-#define SNEK_VERSION "v1.01"
+#define SNEK_VERSION "v1.02"
 
 // C Standard Library
 #include <stdio.h>
@@ -21,6 +21,8 @@
 
 // Graphics
 #include "draw.h"           // Some additional Curses helper functions.
+
+#include "board.h"			// Load and display boards from an ascii art editor
 
 /* Cell IDs */
 #define CELL_EMPTY 0
@@ -96,7 +98,6 @@ int putCellRandom( int *brd, int kind, int under ) {
 #define BOARDTYPE_CROSS 1
 
 void boardMake( int * brd, int b_n, int b_s, int b_e, int b_w, int board_type ) {
-//void boardMakeSquare( int * brd ) {
 	int x, y;
 	for( x = 0; x < VIEWPORT_W; x++ ) {
 		for( y = 0; y < VIEWPORT_H; y++ ) {
@@ -164,11 +165,24 @@ int main( int argc, char *argv[] ) {
 	int board_select = -1;
 
     if( SHOW_TITLE ) {
+		Board * title_art = boardLoadFromFile( "snek.brd" );
+		if( title_art ) {
+			Coord title_offset = { 4, 2 };
+			boardDraw( title_art, title_offset, false );
+			getch();
+			clear();
+		}
+
 		while( board_select == -1 ) {
-	        mvprintw(1, 2, "Oh No It's\n\n  Snek\n\n  " SNEK_VERSION "\n\n  Build date: " __DATE__ ", " __TIME__ "\n\n  www.rabbitboots.com\n\n  \n  An 80x25 terminal is assumed.\n\n  Arrow keys to move your Snek.\n\n Please choose an arena:\n\n  a) Square Board of Mundanity\n\n  b) Cross Board of Tight Quarters");
+	        mvprintw(1, 2, "Snek " SNEK_VERSION "\n\n  Build date: " __DATE__ ", " __TIME__ "\n\n  www.rabbitboots.com\n\n  \n  An 80x25 terminal is assumed.\n\n  Arrow keys to move your Snek.\n\n  Please choose an arena, or press 'q' to quit:\n\n  a) Square Board of Mundanity\n  b) Cross Board of Tight Quarters");
 	        refresh();
 	        title_in = getch();
     	    clear();
+			if( title_in == 'q' ) {
+				endwin();
+				return 0;
+			}
+
 			if( title_in >= 'a' && title_in <= 'b' ) {
 				if( title_in == 'a' ) {
 					board_select = BOARDTYPE_EMPTY;
@@ -386,7 +400,7 @@ int main( int argc, char *argv[] ) {
 
     /* -- Shutting down */
 
-    /* Close allocations and pointers. */
+    /* Deallocate pointers */
 
 	free( board );
 
